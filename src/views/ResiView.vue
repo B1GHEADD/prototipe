@@ -33,7 +33,7 @@
     </table>
 
     <!-- PopUp Form Edit -->
-    <div v-if="showSelectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="selectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-4 rounded shadow-lg">
         <h1 class="text-2xl font-bold mb-4">Edit Pesanan</h1>
         <form class="grid grid-cols-4 gap-3" @submit.prevent="saveOrder">
@@ -113,9 +113,9 @@
             <label class="block text-sm font-bold mb-2">Keterangan:</label>
             <input v-model="selectedOrder.keterangan" type="text" class="w-full p-2 border border-gray-300 rounded" />
           </div>
-          <div class="mb-4 flex items-center">
+          <div class="mb-4">
             <button type="submit" class="bg-blue-500 text-white p-2 rounded">Simpan</button>
-            <button type="button" @click="cancelEdit" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
+            <button @click="cancelEdit" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
           </div>
         </form>
       </div>
@@ -139,25 +139,22 @@ export default {
     const auth = getAuth();
     const db = getFirestore();
     const showSelectedOrder = ref(false);
-    const sizes = ref([]); // Mendeklarasikan sizes
 
     const fetchOrders = async (uid) => {
       try {
-        const [ordersSnapshot, userOrderSnapshot, produkSnapshot] = await Promise.all([getDocs(collection(db, "orders")), getDoc(doc(db, "users", uid))]);
+        const [ordersSnapshot, userOrderSnapshot] = await Promise.all([getDocs(collection(db, "orders")), getDoc(doc(db, "users", uid))]);
 
         let userName = "Unknown";
-        let tlpn = "";
         if (userOrderSnapshot.exists()) {
           const userData = userOrderSnapshot.data();
           userName = userData.nama || "Unknown";
-          tlpn = userData.no_tlpn;
         }
 
         const fetchedOrders = [];
         ordersSnapshot.forEach((doc) => {
           const data = doc.data();
           if (data.user_uid === uid) {
-            fetchedOrders.push({ id: doc.id, ...data, nama: userName, no_tlpn: tlpn });
+            fetchedOrders.push({ id: doc.id, ...data, nama: userName });
           }
         });
 
@@ -167,48 +164,52 @@ export default {
       }
     };
 
-    onMounted(() => {
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          fetchOrders(user.uid);
-          fetchSizes(); // Memanggil fetchSizes saat komponen dimuat
-        } else {
-          console.error("User not authenticated.");
-        }
-      });
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchOrders(user.uid);
+      }
     });
 
     const openEditPopup = (order) => {
-      selectedOrder.value = { ...order }; // Copy order data to selectedOrder
-      showSelectedOrder.value = true; // Show popup
+      selectedOrder.value = { ...order };
+      showSelectedOrder.value = true;
+    };
+
+    const closeEditPopup = () => {
+      showSelectedOrder.value = false;
     };
 
     const saveOrder = async () => {
-      if (selectedOrder.value) {
-        try {
-          await updateDoc(doc(db, "orders", selectedOrder.value.id), {
-            order_date: selectedOrder.value.order_date,
-            finish_date: selectedOrder.value.finish_date,
-            jumlah: selectedOrder.value.jumlah,
-            price: selectedOrder.value.price,
-          });
-          showSelectedOrder.value = false; // Close popup
-          fetchOrders(selectedOrder.value.user_uid); // Refresh orders
-        } catch (error) {
-          console.error("Error saving order: ", error);
-          alert("Failed to save order: " + error.message); // Tampilkan pesan kesalahan
-        }
+      try {
+        const orderRef = doc(db, "orders", selectedOrder.value.id);
+        await updateDoc(orderRef, { ...selectedOrder.value });
+        await fetchOrders(auth.currentUser.uid); // Refresh order list
+        closeEditPopup();
+      } catch (error) {
+        console.error("Error updating order: ", error);
       }
-    };
-
-    const cancelEdit = () => {
-      showSelectedOrder.value = false; // Close popup without saving
     };
 
     const deleteOrder = async (orderId) => {
       try {
-        await deleteDoc(doc(db, "orders", orderId));
-        fetchOrders(selectedOrder.value.user_uid); // Refresh orders
+        const orderDoc = await getDoc(doc(db, "orders", orderId));
+        if (orderDoc.exists()) {
+          const orderData = orderDoc.data();
+          const produkId = orderData.produk_id;
+
+          await deleteDoc(doc(db, "orders", orderId));
+
+          const produkSnapshot = await getDocs(collection(db, "produk"));
+          const produkToDelete = produkSnapshot.docs.find((p) => p.id === produkId);
+
+          if (produkToDelete) {
+            await deleteDoc(doc(db, "produk", produkToDelete.id)); // Hapus produk yang ditemukan
+          }
+
+          orders.value = orders.value.filter((order) => order.id !== orderId);
+        } else {
+          console.error("Order not found: ", orderId);
+        }
       } catch (error) {
         console.error("Error deleting order: ", error);
       }
@@ -216,17 +217,13 @@ export default {
 
     return {
       orders,
-      showSelectedOrder,
       selectedOrder,
+      showSelectedOrder,
       openEditPopup,
+      closeEditPopup,
       saveOrder,
-      cancelEdit,
       deleteOrder,
     };
   },
 };
 </script>
-
-<style scoped>
-/* Add your styles here */
-</style>
