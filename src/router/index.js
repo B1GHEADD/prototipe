@@ -8,6 +8,7 @@ import AdminView from "@/views/AdminView.vue";
 import ResiView from "@/views/ResiView.vue";
 import UserAdmin from "@/views/UserAdmin.vue";
 import ProdukView from "@/views/ProdukView.vue";
+import ProfielView from "@/views/ProfielView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,15 @@ const router = createRouter({
       path: "/home",
       name: "home",
       component: HomeView,
+      meta: {
+        requiresAuth: true,
+        role: "user", // Akses untuk user biasa
+      },
+    },
+    {
+      path: "/profiel",
+      name: "profiel",
+      component: ProfielView,
       meta: {
         requiresAuth: true,
         role: "user", // Akses untuk user biasa

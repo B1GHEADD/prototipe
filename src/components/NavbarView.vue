@@ -5,6 +5,7 @@
     </div>
     <div class="flex-1 text-center">
       <ul class="inline-flex gap-24 text-xl">
+        <li><a href="/profiel">Profil</a></li>
         <li><a href="/home">Pemesanan</a></li>
         <li><a href="/resi">Validasi</a></li>
         <!-- <li><a href="">Pembayaran</a></li> -->

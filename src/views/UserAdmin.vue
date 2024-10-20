@@ -21,8 +21,6 @@
             <td class="block md:table-cell text-center py-2 px-4">{{ user.no_tlpn }}</td>
             <td class="block md:table-cell text-center py-2 px-4">{{ user.email }}</td>
             <td class="block md:table-cell text-center py-2 px-4">
-              <button @click="openEditPopup(user)" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600">Edit Profil</button>
-              <button @click="openPasswordPopup(user)" class="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600 ml-2">Edit Password</button>
               <button @click="deleteUser(user.id)" class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 ml-2">Hapus</button>
             </td>
           </tr>
@@ -55,27 +53,7 @@
           <input v-model="newUser.password" class="w-full border px-2 py-1 rounded" type="password" />
         </div>
         <div class="flex justify-end">
-          <button @click="saveUser" class="bg-green-500 text-white px-4 py-2 rounded mr-2 hover:bg-green-600">{{ isEditMode ? "Simpan Perubahan" : "Simpan" }}</button>
           <button @click="showPopup = false" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Batal</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Pop-up Edit Password -->
-    <div v-if="showPasswordPopup" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-      <div class="bg-white p-8 rounded shadow-md w-1/3">
-        <h2 class="text-xl font-bold mb-4 text-center">Edit Password</h2>
-        <div class="mb-4">
-          <label class="block">Password Saat Ini:</label>
-          <input v-model="currentPassword" class="w-full border px-2 py-1 rounded" type="password" />
-        </div>
-        <div class="mb-4">
-          <label class="block">Password Baru:</label>
-          <input v-model="newPassword" class="w-full border px-2 py-1 rounded" type="password" />
-        </div>
-        <div class="flex justify-end">
-          <button @click="savePassword" class="bg-green-500 text-white px-4 py-2 rounded mr-2 hover:bg-green-600">Simpan Password</button>
-          <button @click="showPasswordPopup = false" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Batal</button>
         </div>
       </div>
     </div>
@@ -97,11 +75,10 @@ export default {
     const db = getFirestore();
     const auth = getAuth();
     const showPopup = ref(false);
-    const showPasswordPopup = ref(false);
+
     const isEditMode = ref(false);
-    const currentPassword = ref("");
     const selectedUserId = ref(null);
-    const newPassword = ref("");
+
     const newUser = ref({
       nama: "",
       alamat: "",
@@ -123,18 +100,6 @@ export default {
       isEditMode.value = false;
       newUser.value = { nama: "", alamat: "", no_tlpn: "", email: "", password: "", role: "user" };
       showPopup.value = true;
-    };
-
-    const openEditPopup = (user) => {
-      isEditMode.value = true;
-      selectedUserId.value = user.id;
-      newUser.value = { nama: user.nama, alamat: user.alamat, no_tlpn: user.no_tlpn, email: user.email, password: "" };
-      showPopup.value = true;
-    };
-
-    const openPasswordPopup = (user) => {
-      selectedUserId.value = user.id;
-      showPasswordPopup.value = true;
     };
 
     const saveUser = async () => {
@@ -169,32 +134,6 @@ export default {
       fetchUsers();
     };
 
-    const savePassword = async () => {
-      if (!newPassword.value || typeof newPassword.value !== "string") {
-        alert("Password baru tidak valid");
-        return;
-      }
-
-      try {
-        // Mengirimkan request ke server untuk mengubah password
-        await fetch("/reset-password", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            userId: selectedUserId.value, // UID user yang dipilih
-            newPassword: newPassword.value, // Password baru
-          }),
-        });
-        alert("Password berhasil diubah");
-        showPasswordPopup.value = false;
-      } catch (error) {
-        console.error("Error updating password:", error);
-        alert("Error updating password: " + error.message);
-      }
-    };
-
     const deleteUser = async (id) => {
       await deleteDoc(doc(db, "users", id));
       fetchUsers();
@@ -207,16 +146,9 @@ export default {
     return {
       users,
       showPopup,
-      showPasswordPopup,
       newUser,
-      newPassword,
-      currentPassword,
-      isEditMode,
       openCreatePopup,
-      openEditPopup,
-      openPasswordPopup,
       saveUser,
-      savePassword,
       deleteUser,
     };
   },

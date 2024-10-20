@@ -18,8 +18,11 @@
               <button type="submit" value="Login" class="bg-[#ffcc00] p-2 font-bold text-white rounded-md w-full">Submit</button>
             </div>
             <div class="text-center mt-2 text-sm">
-              <h1 class="">Not a member ?</h1>
+              <h1 class="">Not a member?</h1>
               <a class="text-[#ffcc00] font-bold underline" href="/register">Sign Up</a>
+            </div>
+            <div class="text-center mt-2 text-sm">
+              <a class="text-[#ffcc00] font-bold underline cursor-pointer" @click="forgotPassword">Forgot Password?</a>
             </div>
           </form>
         </div>
@@ -31,17 +34,38 @@
 <script>
 import { ref } from "vue";
 import { useStore } from "vuex";
+import { auth } from "../firebase/index";
+import { sendPasswordResetEmail } from "firebase/auth";
 
 export default {
   setup() {
     const login_form = ref({});
     const store = useStore();
+
     const login = () => {
       store.dispatch("login", login_form.value);
     };
+
+    const forgotPassword = async () => {
+      const email = login_form.value.email;
+      if (!email) {
+        alert("Please enter your email address.");
+        return;
+      }
+
+      try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Password reset email sent! Check your inbox.");
+      } catch (error) {
+        console.error("Error sending password reset email:", error);
+        alert("An error occurred while sending the reset email. " + error.message);
+      }
+    };
+
     return {
       login_form,
       login,
+      forgotPassword,
     };
   },
 };
