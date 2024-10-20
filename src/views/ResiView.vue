@@ -33,7 +33,7 @@
     </table>
 
     <!-- PopUp Form Edit -->
-    <div v-if="selectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div v-if="showSelectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-4 rounded shadow-lg">
         <h1 class="text-2xl font-bold mb-4">Edit Pesanan</h1>
         <form class="grid grid-cols-4 gap-3" @submit.prevent="saveOrder">
@@ -115,7 +115,7 @@
           </div>
           <div class="mb-4">
             <button type="submit" class="bg-blue-500 text-white p-2 rounded">Simpan</button>
-            <button @click="cancelEdit" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
+            <button @click="closeEditPopup" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
           </div>
         </form>
       </div>
