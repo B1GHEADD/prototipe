@@ -1,8 +1,8 @@
 import router from "../../router";
 import { auth } from "../../firebase";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase"; // Firestore database
+import { doc, setDoc, getDoc, getDocs, query, where, collection } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const userStore = {
   state: {
@@ -54,36 +54,52 @@ const userStore = {
         if (docSnapshot.exists()) {
           // Jika dokumen user ditemukan, ambil data user
           const userData = docSnapshot.data();
-          const userRole = userData.role;
+          const userRoleId = userData.role_id;
 
-          // Debugging: Log role yang diambil dari Firestore
-          console.log("Role pengguna:", userRole);
+          // Ambil data role berdasarkan role_id dari Firestore
+          const roleRef = doc(db, "role", userRoleId);
+          const roleDoc = await getDoc(roleRef);
 
-          // Set role pengguna ke dalam store (Vuex)
-          commit("SET_ROLE", userRole);
+          if (roleDoc.exists()) {
+            // Jika dokumen role ditemukan, ambil tipe role
+            const roleData = roleDoc.data();
+            const roleType = roleData.type;
 
-          // Arahkan pengguna sesuai dengan perannya
-          if (userRole === "user") {
-            console.log("Pengguna dengan role 'user' dialihkan ke /home");
-            router.push("/home");
-          } else if (userRole === "admin") {
-            console.log("Pengguna dengan role 'admin' dialihkan ke /admin");
-            router.push("/admin");
+            // Debugging: Log tipe role yang diambil dari Firestore
+            console.log("Tipe Role pengguna:", roleType);
+
+            // Set role pengguna ke dalam store (Vuex)
+            commit("SET_ROLE", roleType);
+
+            // Arahkan pengguna sesuai dengan tipe role
+            if (roleType === "user") {
+              console.log("Pengguna dengan tipe 'user' dialihkan ke /home");
+              router.push("/home");
+            } else if (roleType === "admin") {
+              console.log("Pengguna dengan tipe 'admin' dialihkan ke /admin");
+              router.push("/admin");
+            } else {
+              console.log("Tipe role tidak valid. Mengarahkan ke halaman /");
+              alert("Invalid role type. Contact support.");
+              await auth.signOut();
+            }
           } else {
-            console.log("Role tidak valid. Mengarahkan ke halaman /");
-            alert("Invalid role. Contact support.");
+            // Jika dokumen role tidak ditemukan di Firestore
+            console.error("Role tidak ditemukan di Firestore!");
+            alert("User role not found. Contact support.");
+            // Logout jika Firestore tidak memiliki data role pengguna
             await auth.signOut();
           }
         } else {
           // Jika dokumen user tidak ditemukan di Firestore
           console.error("No user document found in Firestore!");
-          alert("User data not found . Contact support.");
+          alert("User data not found. Contact support.");
           // Logout jika Firestore tidak memiliki data pengguna
           await auth.signOut();
         }
       } catch (error) {
         console.error("Error verifying user in Firestore:", error);
-        alert("Error verifying user .");
+        alert("Error verifying user.");
         // Logout jika terjadi kesalahan pada Firestore
         await auth.signOut();
       }
@@ -93,9 +109,23 @@ const userStore = {
       const { nama, no_tlpn, alamat, email, password } = details;
 
       try {
+        // Membuat user baru dengan email dan password
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+        // Mendapatkan role_id dari koleksi "role" yang memiliki tipe "user"
+        const roleSnapshot = await getDocs(query(collection(db, "role"), where("type", "==", "user")));
+        let roleId = null;
+
+        roleSnapshot.forEach((doc) => {
+          roleId = doc.id; // Mengambil ID dari dokumen yang sesuai
+        });
+
+        if (!roleId) {
+          throw new Error("Role 'user' not found");
+        }
+
+        // Menyimpan data pengguna ke dalam koleksi "users"
         await setDoc(doc(db, "users", user.uid), {
           user_uid: user.uid,
           nama: nama,
@@ -103,11 +133,13 @@ const userStore = {
           alamat: alamat,
           email: email,
           password: password,
-          role: "user",
+          role_id: roleId, // Menggunakan role_id yang diperoleh
         });
 
+        // Mengubah state user
         commit("SET_USER", user);
 
+        // Mengarahkan ke halaman home
         router.push("/home");
       } catch (error) {
         switch (error.code) {
@@ -124,7 +156,7 @@ const userStore = {
             alert("Weak password");
             break;
           default:
-            alert("Something went wrong");
+            alert(error.message || "Something went wrong");
         }
         return;
       }

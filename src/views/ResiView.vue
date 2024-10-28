@@ -55,7 +55,7 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Size:</label>
-            <select v-model="selectedOrder.ukuran" class="border border-black ml-auto rounded-md">
+            <select v-model="selectedOrder.ukuran_type" class="border border-black ml-auto rounded-md">
               <option disabled value="">Please select one</option>
               <option>XS</option>
               <option>S</option>
@@ -66,7 +66,7 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Tinta:</label>
-            <select v-model="selectedOrder.tinta" class="border border-black ml-auto rounded-md">
+            <select v-model="selectedOrder.tinta_type" class="border border-black ml-auto rounded-md">
               <option disabled value="">Please select one</option>
               <option>Pigment</option>
               <option>Water-based</option>
@@ -78,7 +78,7 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Finishing:</label>
-            <select v-model="selectedOrder.finishing" class="border border-black ml-auto rounded-md">
+            <select v-model="selectedOrder.finishing_type" class="border border-black ml-auto rounded-md">
               <option disabled value="">Please select one</option>
               <option>Doff</option>
               <option>Kasar</option>
@@ -87,7 +87,7 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Lengan:</label>
-            <select v-model="selectedOrder.lengan" class="border border-black ml-auto rounded-md">
+            <select v-model="selectedOrder.lengan_type" class="border border-black ml-auto rounded-md">
               <option disabled value="">Please select one</option>
               <option>Panjang</option>
               <option>Pendek</option>
@@ -95,7 +95,7 @@
           </div>
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Bahan:</label>
-            <select v-model="selectedOrder.bahan" class="border border-black ml-auto rounded-md">
+            <select v-model="selectedOrder.bahan_type" class="border border-black ml-auto rounded-md">
               <option disabled value="">Please select one</option>
               <option>Cotton 24S</option>
               <option>Cotton 30S</option>
@@ -115,7 +115,7 @@
           </div>
           <div class="mb-4">
             <button type="submit" class="bg-blue-500 text-white p-2 rounded">Simpan</button>
-            <button @click="closeEditPopup" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
+            <button @click="closeEditPopup" type="button" class="bg-gray-500 text-white p-2 rounded ml-2">Batal</button>
           </div>
         </form>
       </div>
@@ -124,8 +124,8 @@
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
-import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { ref, onMounted, watch } from "vue";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import NavbarView from "@/components/NavbarView.vue";
 
@@ -142,21 +142,122 @@ export default {
 
     const fetchOrders = async (uid) => {
       try {
-        const [ordersSnapshot, userOrderSnapshot] = await Promise.all([getDocs(collection(db, "orders")), getDoc(doc(db, "users", uid))]);
+        const ordersSnapshot = await getDocs(collection(db, "orders"));
+        const userOrderSnapshot = await getDoc(doc(db, "users", uid));
 
         let userName = "Unknown";
+        let tlpn = "";
+
         if (userOrderSnapshot.exists()) {
           const userData = userOrderSnapshot.data();
           userName = userData.nama || "Unknown";
+          tlpn = userData.no_tlpn || "";
         }
 
         const fetchedOrders = [];
-        ordersSnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.user_uid === uid) {
-            fetchedOrders.push({ id: doc.id, ...data, nama: userName });
+        for (const orderDoc of ordersSnapshot.docs) {
+          const data = orderDoc.data();
+          const produk_id = data.produk_id;
+
+          if (data.user_uid === uid && produk_id) {
+            const produkOrderSnapshot = await getDoc(doc(db, "produk", produk_id));
+
+            let idTinta, idBahan, idUkuran, idLengan, idFinishing, keterangan;
+            let tintaType = "",
+              tintaHarga = 0;
+            let bahanType = "",
+              bahanHarga = 0;
+            let ukuranType = "",
+              ukuranHarga = 0;
+            let lenganType = "",
+              lenganHarga = 0;
+            let finishingType = "",
+              finishingHarga = 0;
+
+            if (produkOrderSnapshot.exists()) {
+              const produkData = produkOrderSnapshot.data();
+              idTinta = produkData.ID_categori_tinta;
+              idBahan = produkData.ID_categori_bahan;
+              idUkuran = produkData.ID_categori_ukuran;
+              idLengan = produkData.ID_categori_lengan;
+              idFinishing = produkData.ID_categori_finishing;
+              keterangan = produkData.keterangan;
+
+              // Ambil data dari tabel tinta
+              if (idTinta) {
+                const tintaSnapshot = await getDoc(doc(db, "tinta", idTinta));
+                if (tintaSnapshot.exists()) {
+                  const tintaData = tintaSnapshot.data();
+                  tintaType = tintaData.type;
+                  tintaHarga = tintaData.harga;
+                }
+              }
+
+              // Ambil data dari tabel bahan
+              if (idBahan) {
+                const bahanSnapshot = await getDoc(doc(db, "bahan", idBahan));
+                if (bahanSnapshot.exists()) {
+                  const bahanData = bahanSnapshot.data();
+                  bahanType = bahanData.type;
+                  bahanHarga = bahanData.harga;
+                }
+              }
+
+              // Ambil data dari tabel ukuran
+              if (idUkuran) {
+                const ukuranSnapshot = await getDoc(doc(db, "ukuran", idUkuran));
+                if (ukuranSnapshot.exists()) {
+                  const ukuranData = ukuranSnapshot.data();
+                  ukuranType = ukuranData.type;
+                  ukuranHarga = ukuranData.harga;
+                }
+              }
+
+              // Ambil data dari tabel lengan
+              if (idLengan) {
+                const lenganSnapshot = await getDoc(doc(db, "lengan", idLengan));
+                if (lenganSnapshot.exists()) {
+                  const lenganData = lenganSnapshot.data();
+                  lenganType = lenganData.type;
+                  lenganHarga = lenganData.harga;
+                }
+              }
+
+              // Ambil data dari tabel finishing
+              if (idFinishing) {
+                const finishingSnapshot = await getDoc(doc(db, "finishing", idFinishing));
+                if (finishingSnapshot.exists()) {
+                  const finishingData = finishingSnapshot.data();
+                  finishingType = finishingData.type;
+                  finishingHarga = finishingData.harga;
+                }
+              }
+            }
+
+            fetchedOrders.push({
+              id: orderDoc.id,
+              ...data,
+              nama: userName,
+              no_tlpn: tlpn,
+              id_tinta: idTinta,
+              tinta_type: tintaType,
+              tinta_harga: tintaHarga,
+              id_bahan: idBahan,
+              bahan_type: bahanType,
+              bahan_harga: bahanHarga,
+              id_ukuran: idUkuran,
+              ukuran_type: ukuranType,
+              ukuran_harga: ukuranHarga,
+              id_lengan: idLengan,
+              lengan_type: lenganType,
+              lengan_harga: lenganHarga,
+              id_finishing: idFinishing,
+              finishing_type: finishingType,
+              finishing_harga: finishingHarga,
+              keterangan,
+            });
           }
-        });
+        }
 
         orders.value = fetchedOrders;
       } catch (error) {
@@ -164,30 +265,70 @@ export default {
       }
     };
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        fetchOrders(user.uid);
+    const calculateTotalPrice = async () => {
+      const { tinta_type, bahan_type, ukuran_type, lengan_type, finishing_type, jumlah } = selectedOrder.value;
+
+      let tintaHarga = await getPrice("tinta", tinta_type);
+      let bahanHarga = await getPrice("bahan", bahan_type);
+      let ukuranHarga = await getPrice("ukuran", ukuran_type);
+      let lenganHarga = await getPrice("lengan", lengan_type);
+      let finishingHarga = await getPrice("finishing", finishing_type);
+
+      let total = (tintaHarga + bahanHarga + ukuranHarga + lenganHarga + finishingHarga) * jumlah;
+      selectedOrder.value.price = total;
+      // Watch untuk memantau perubahan data
+    };
+
+    const getPrice = async (collectionName, type) => {
+      try {
+        const q = query(collection(db, collectionName), where("type", "==", type));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          return querySnapshot.docs[0].data().harga;
+        }
+        return 0;
+      } catch (error) {
+        console.error("Error fetching price: ", error);
+        return 0;
       }
-    });
+    };
 
     const openEditPopup = (order) => {
       selectedOrder.value = { ...order };
       showSelectedOrder.value = true;
+      watch(() => [selectedOrder.value.tinta_type, selectedOrder.value.bahan_type, selectedOrder.value.ukuran_type, selectedOrder.value.lengan_type, selectedOrder.value.finishing_type, selectedOrder.value.jumlah], calculateTotalPrice, {
+        deep: true,
+      });
     };
 
     const closeEditPopup = () => {
+      selectedOrder.value = null;
       showSelectedOrder.value = false;
+      watch(() => [selectedOrder.value.tinta_type, selectedOrder.value.bahan_type, selectedOrder.value.ukuran_type, selectedOrder.value.lengan_type, selectedOrder.value.finishing_type, selectedOrder.value.jumlah], calculateTotalPrice, {
+        deep: true,
+      });
     };
 
     const saveOrder = async () => {
-      try {
-        const orderRef = doc(db, "orders", selectedOrder.value.id);
-        await updateDoc(orderRef, { ...selectedOrder.value });
-        await fetchOrders(auth.currentUser.uid); // Refresh order list
-        closeEditPopup();
-      } catch (error) {
-        console.error("Error updating order: ", error);
-      }
+      const orderDoc = doc(db, "orders", selectedOrder.value.id);
+      await updateDoc(orderDoc, {
+        order_date: selectedOrder.value.order_date,
+        finish_date: selectedOrder.value.finish_date,
+        jumlah: selectedOrder.value.jumlah,
+      });
+
+      const produkDoc = doc(db, "produk", selectedOrder.value.produk_id);
+      await updateDoc(produkDoc, {
+        ID_categori_ukuran: selectedOrder.value.id_ukuran,
+        ID_categori_bahan: selectedOrder.value.id_bahan,
+        ID_categori_tinta: selectedOrder.value.id_tinta,
+        ID_categori_finishing: selectedOrder.value.id_finishing,
+        ID_categori_lengan: selectedOrder.value.id_lengan,
+        keterangan: selectedOrder.value.keterangan,
+      });
+
+      closeEditPopup();
+      await fetchOrders(auth.currentUser.uid);
     };
 
     const deleteOrder = async (orderId) => {
@@ -203,7 +344,7 @@ export default {
           const produkToDelete = produkSnapshot.docs.find((p) => p.id === produkId);
 
           if (produkToDelete) {
-            await deleteDoc(doc(db, "produk", produkToDelete.id)); // Hapus produk yang ditemukan
+            await deleteDoc(doc(db, "produk", produkToDelete.id));
           }
 
           orders.value = orders.value.filter((order) => order.id !== orderId);
@@ -215,15 +356,31 @@ export default {
       }
     };
 
+    onMounted(() => {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          await fetchOrders(user.uid);
+        } else {
+          console.log("User is not authenticated");
+        }
+      });
+    });
+
     return {
       orders,
       selectedOrder,
       showSelectedOrder,
+      fetchOrders,
       openEditPopup,
       closeEditPopup,
+      calculateTotalPrice,
       saveOrder,
       deleteOrder,
     };
   },
 };
 </script>
+
+<style scoped>
+/* Anda dapat menambahkan gaya CSS tambahan di sini */
+</style>

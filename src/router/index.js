@@ -29,7 +29,7 @@ const router = createRouter({
       component: HomeView,
       meta: {
         requiresAuth: true,
-        role: "user", // Akses untuk user biasa
+        roleType: "user",
       },
     },
     {
@@ -38,7 +38,16 @@ const router = createRouter({
       component: ProfielView,
       meta: {
         requiresAuth: true,
-        role: "user", // Akses untuk user biasa
+        roleType: "user",
+      },
+    },
+    {
+      path: "/resi",
+      name: "resi",
+      component: ResiView,
+      meta: {
+        requiresAuth: true,
+        roleType: "user",
       },
     },
     {
@@ -47,13 +56,8 @@ const router = createRouter({
       component: AdminView,
       meta: {
         requiresAuth: true,
-        role: "admin", // Akses untuk admin
+        roleType: "admin",
       },
-    },
-    {
-      path: "/resi",
-      name: "resi",
-      component: ResiView,
     },
     {
       path: "/user-admin",
@@ -61,7 +65,7 @@ const router = createRouter({
       component: UserAdmin,
       meta: {
         requiresAuth: true,
-        role: "admin",
+        roleType: "admin",
       },
     },
     {
@@ -70,7 +74,7 @@ const router = createRouter({
       component: ProdukView,
       meta: {
         requiresAuth: true,
-        role: "admin",
+        roleType: "admin",
       },
     },
   ],
@@ -84,22 +88,62 @@ router.beforeEach((to, from, next) => {
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
 
     if (requiresAuth && !user) {
-      next({ name: "login" });
+      // Jika halaman membutuhkan autentikasi dan user belum login
+      if (to.name !== "login") {
+        next({ name: "login" });
+      } else {
+        next();
+      }
     } else if (requiresAuth && user) {
+      // Jika halaman membutuhkan autentikasi dan user sudah login
       const userRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userRef);
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const userRole = userData.role;
+        const userRoleId = userData.role_id;
 
-        if (to.meta.role && to.meta.role === userRole) {
-          next();
+        // Ambil data role berdasarkan role_id dari Firestore
+        const roleRef = doc(db, "role", userRoleId);
+        const roleDoc = await getDoc(roleRef);
+
+        if (roleDoc.exists()) {
+          const roleData = roleDoc.data();
+          const roleType = roleData.type;
+
+          // Cek akses halaman berdasarkan roleType dan meta roleType
+          const routeRoleType = to.meta.roleType;
+          if (routeRoleType && routeRoleType !== roleType) {
+            // Jika roleType tidak sesuai dengan akses halaman
+            if (roleType === "user") {
+              next({ name: "home" });
+            } else if (roleType === "admin") {
+              next({ name: "admin" });
+            } else {
+              next({ name: "login" });
+            }
+          } else {
+            // Jika roleType sesuai dengan akses halaman
+            next();
+          }
         } else {
-          next({ name: "home" });
+          // Redirect ke login jika role_id tidak ditemukan
+          if (to.name !== "login") {
+            next({ name: "login" });
+          } else {
+            next();
+          }
+        }
+      } else {
+        // Redirect ke login jika data user tidak ditemukan
+        if (to.name !== "login") {
+          next({ name: "login" });
+        } else {
+          next();
         }
       }
     } else {
+      // Jika halaman tidak membutuhkan autentikasi
       next();
     }
   });
