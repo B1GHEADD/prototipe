@@ -22,8 +22,8 @@
           <td class="px-4 py-2 border border-gray-300">{{ order.finish_date }}</td>
           <td class="px-4 py-2 border border-gray-300">{{ order.jumlah }}</td>
           <td class="px-4 py-2 border border-gray-300">Rp. {{ order.price }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.acc?.approved || "BELUM" }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.acc?.keterangan || "Belum di review" }}</td>
+          <td class="px-4 py-2 border border-gray-300">{{ order.status?.approved || "BELUM" }}</td>
+          <td class="px-4 py-2 border border-gray-300">{{ order.status?.keterangan || "Belum di review" }}</td>
           <td class="px-4 py-2 border border-gray-300">
             <button @click="openEditPopup(order)" class="bg-blue-500 text-white p-2 rounded">Edit</button>
             <button @click="deleteOrder(order.id)" :disabled="order.acc?.approved === 'YA'" class="bg-red-500 text-white p-2 rounded ml-2">Hapus</button>
@@ -36,7 +36,7 @@
     <div v-if="showSelectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
       <div class="bg-white p-4 rounded shadow-lg">
         <h1 class="text-2xl font-bold mb-4">Edit Pesanan</h1>
-        <form class="grid grid-cols-4 gap-3" @submit.prevent="saveOrder">
+        <form class="grid grid-cols-4 gap-3" @submit.prevent="editOrder">
           <div class="mb-4">
             <label class="block text-sm font-bold mb-2">Nama:</label>
             <input v-model="selectedOrder.nama" type="text" disabled class="w-full p-2 border border-gray-300 rounded" />
@@ -265,70 +265,15 @@ export default {
       }
     };
 
-    const calculateTotalPrice = async () => {
-      const { tinta_type, bahan_type, ukuran_type, lengan_type, finishing_type, jumlah } = selectedOrder.value;
-
-      let tintaHarga = await getPrice("tinta", tinta_type);
-      let bahanHarga = await getPrice("bahan", bahan_type);
-      let ukuranHarga = await getPrice("ukuran", ukuran_type);
-      let lenganHarga = await getPrice("lengan", lengan_type);
-      let finishingHarga = await getPrice("finishing", finishing_type);
-
-      let total = (tintaHarga + bahanHarga + ukuranHarga + lenganHarga + finishingHarga) * jumlah;
-      selectedOrder.value.price = total;
-      // Watch untuk memantau perubahan data
-    };
-
-    const getPrice = async (collectionName, type) => {
-      try {
-        const q = query(collection(db, collectionName), where("type", "==", type));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          return querySnapshot.docs[0].data().harga;
-        }
-        return 0;
-      } catch (error) {
-        console.error("Error fetching price: ", error);
-        return 0;
-      }
-    };
-
     const openEditPopup = (order) => {
       selectedOrder.value = { ...order };
       showSelectedOrder.value = true;
-      watch(() => [selectedOrder.value.tinta_type, selectedOrder.value.bahan_type, selectedOrder.value.ukuran_type, selectedOrder.value.lengan_type, selectedOrder.value.finishing_type, selectedOrder.value.jumlah], calculateTotalPrice, {
-        deep: true,
-      });
+      calculateTotalPrice();
     };
 
-    const closeEditPopup = () => {
-      selectedOrder.value = null;
+    const closeEditPopup = (order) => {
+      selectedOrder.value = { ...order };
       showSelectedOrder.value = false;
-      watch(() => [selectedOrder.value.tinta_type, selectedOrder.value.bahan_type, selectedOrder.value.ukuran_type, selectedOrder.value.lengan_type, selectedOrder.value.finishing_type, selectedOrder.value.jumlah], calculateTotalPrice, {
-        deep: true,
-      });
-    };
-
-    const saveOrder = async () => {
-      const orderDoc = doc(db, "orders", selectedOrder.value.id);
-      await updateDoc(orderDoc, {
-        order_date: selectedOrder.value.order_date,
-        finish_date: selectedOrder.value.finish_date,
-        jumlah: selectedOrder.value.jumlah,
-      });
-
-      const produkDoc = doc(db, "produk", selectedOrder.value.produk_id);
-      await updateDoc(produkDoc, {
-        ID_categori_ukuran: selectedOrder.value.id_ukuran,
-        ID_categori_bahan: selectedOrder.value.id_bahan,
-        ID_categori_tinta: selectedOrder.value.id_tinta,
-        ID_categori_finishing: selectedOrder.value.id_finishing,
-        ID_categori_lengan: selectedOrder.value.id_lengan,
-        keterangan: selectedOrder.value.keterangan,
-      });
-
-      closeEditPopup();
-      await fetchOrders(auth.currentUser.uid);
     };
 
     const deleteOrder = async (orderId) => {
@@ -356,6 +301,35 @@ export default {
       }
     };
 
+    const editOrder = async (selectedOrder) => {
+      try {
+        // Pastikan orderId dan produk_id adalah string
+        const orderDocRef = doc(db, "orders", selectedOrder.order_id);
+        const produkDocRef = doc(db, "produk", selectedOrder.produk_id);
+
+        await updateDoc(orderDocRef, {
+          jumlah: selectedOrder.jumlah,
+          order_date: selectedOrder.order_date,
+          finish_date: selectedOrder.finish_date,
+          // tambahkan field lain yang perlu diperbarui
+        });
+
+        await updateDoc(produkDocRef, {
+          ID_categori_tinta: selectedOrder.idTinta,
+          ID_categori_bahan: selectedOrder.idBahan,
+          ID_categori_ukuran: selectedOrder.idUkuran,
+          ID_categori_lengan: selectedOrder.idLengan,
+          ID_categori_finishing: selectedOrder.idFinishing,
+          keterangan: selectedOrder.keterangan,
+          // tambahkan field lain yang perlu diperbarui
+        });
+
+        console.log("Order updated successfully!");
+      } catch (error) {
+        console.error("Error updating order: ", error);
+      }
+    };
+
     onMounted(() => {
       onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -366,21 +340,59 @@ export default {
       });
     });
 
+    const getPrice = async (collectionName, type) => {
+      try {
+        if (!type) return 0; // Jika type kosong, kembalikan harga 0
+
+        const q = query(collection(db, collectionName), where("type", "==", type));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          return querySnapshot.docs[0].data().harga;
+        }
+        return 0;
+      } catch (error) {
+        console.error("Error fetching price: ", error);
+        return 0;
+      }
+    };
+
+    const calculateTotalPrice = async () => {
+      const { tinta_type, bahan_type, ukuran_type, lengan_type, finishing_type, jumlah } = selectedOrder.value;
+
+      // Cek jika tipe belum terisi
+      if (!tinta_type || !bahan_type || !ukuran_type || !lengan_type || !finishing_type) {
+        console.warn("One or more types are missing");
+        return;
+      }
+
+      let tintaHarga = await getPrice("tinta", tinta_type);
+      let bahanHarga = await getPrice("bahan", bahan_type);
+      let ukuranHarga = await getPrice("ukuran", ukuran_type);
+      let lenganHarga = await getPrice("lengan", lengan_type);
+      let finishingHarga = await getPrice("finishing", finishing_type);
+
+      let total = (tintaHarga + bahanHarga + ukuranHarga + lenganHarga + finishingHarga) * jumlah;
+      selectedOrder.value.price = total;
+
+      watch(() => [selectedOrder.value.tinta_type, selectedOrder.value.bahan_type, selectedOrder.value.ukuran_type, selectedOrder.value.lengan_type, selectedOrder.value.finishing_type, selectedOrder.value.jumlah], calculateTotalPrice, {
+        deep: true,
+      });
+    };
+
+    watch(() => calculateTotalPrice, {
+      deep: true,
+    });
+
     return {
       orders,
       selectedOrder,
       showSelectedOrder,
       fetchOrders,
       openEditPopup,
+      editOrder,
       closeEditPopup,
-      calculateTotalPrice,
-      saveOrder,
       deleteOrder,
     };
   },
 };
 </script>
-
-<style scoped>
-/* Anda dapat menambahkan gaya CSS tambahan di sini */
-</style>
