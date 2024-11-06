@@ -301,32 +301,50 @@ export default {
       }
     };
 
-    const editOrder = async (selectedOrder) => {
+    const getIdByType = async (category, type) => {
+      if (!type) return null;
       try {
-        // Pastikan orderId dan produk_id adalah string
-        const orderDocRef = doc(db, "orders", selectedOrder.order_id);
-        const produkDocRef = doc(db, "produk", selectedOrder.produk_id);
-
-        await updateDoc(orderDocRef, {
-          jumlah: selectedOrder.jumlah,
-          order_date: selectedOrder.order_date,
-          finish_date: selectedOrder.finish_date,
-          // tambahkan field lain yang perlu diperbarui
-        });
-
-        await updateDoc(produkDocRef, {
-          ID_categori_tinta: selectedOrder.idTinta,
-          ID_categori_bahan: selectedOrder.idBahan,
-          ID_categori_ukuran: selectedOrder.idUkuran,
-          ID_categori_lengan: selectedOrder.idLengan,
-          ID_categori_finishing: selectedOrder.idFinishing,
-          keterangan: selectedOrder.keterangan,
-          // tambahkan field lain yang perlu diperbarui
-        });
-
-        console.log("Order updated successfully!");
+        const q = query(collection(db, category), where("type", "==", type));
+        const querySnapshot = await getDocs(q);
+        return !querySnapshot.empty ? querySnapshot.docs[0].id : null;
       } catch (error) {
-        console.error("Error updating order: ", error);
+        console.error(`Error getting ID for type "${type}" in category "${category}":`, error);
+        return null;
+      }
+    };
+
+    const editOrder = async () => {
+      try {
+        await calculateTotalPrice();
+        const totalHarga = selectedOrder.value.price;
+
+        await updateDoc(doc(db, "orders", selectedOrder.value.order_id), {
+          finish_date: selectedOrder.value.finish_date,
+          order_date: selectedOrder.value.order_date,
+          jumlah: selectedOrder.value.jumlah,
+          price: totalHarga,
+        });
+
+        const [tintaId, bahanId, ukuranId, lenganId, finishingId] = await Promise.all([
+          getIdByType("tinta", selectedOrder.value.tinta_type),
+          getIdByType("bahan", selectedOrder.value.bahan_type),
+          getIdByType("ukuran", selectedOrder.value.ukuran_type),
+          getIdByType("lengan", selectedOrder.value.lengan_type),
+          getIdByType("finishing", selectedOrder.value.finishing_type),
+        ]);
+
+        await updateDoc(doc(db, "produk", selectedOrder.value.produk_id), {
+          ID_categori_tinta: tintaId,
+          ID_categori_bahan: bahanId,
+          ID_categori_ukuran: ukuranId,
+          ID_categori_lengan: lenganId,
+          ID_categori_finishing: finishingId,
+          keterangan: selectedOrder.value.keterangan || "",
+        });
+
+        await fetchOrders(auth.currentUser.uid); // Update orders list setelah penyimpanan
+      } catch (error) {
+        console.error("Error updating order:", error);
       }
     };
 
@@ -378,10 +396,6 @@ export default {
         deep: true,
       });
     };
-
-    watch(() => calculateTotalPrice, {
-      deep: true,
-    });
 
     return {
       orders,
