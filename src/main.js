@@ -7,6 +7,7 @@ import "flowbite";
 import App from "./App.vue";
 import router from "./router";
 import VueKonva from "vue-konva";
+import './registerServiceWorker'
 
 const app = createApp(App);
 

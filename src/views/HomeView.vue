@@ -44,11 +44,8 @@
           <label class="font-bold text-md">Tinta</label>
           <select v-model="order_form.tinta" @change="calculateTotalPrice" class="border border-black ml-auto rounded-md">
             <option disabled value="">Please select one</option>
-            <option>Pigment</option>
             <option>Water-based</option>
             <option>Superwhite</option>
-            <option>Metalic</option>
-            <option>Rubber</option>
             <option>Plastisol</option>
           </select>
         </div>
@@ -92,23 +89,30 @@
       </form>
     </div>
     <div class="w-full flex flex-col items-center mt-4">
-      <div class="mb-4 w-64 flex justify-between">
-        <button class="border border-black p-1 w-24 rounded-lg bg-blue-300" @click="showFront">Depan</button>
-        <button class="border border-black p-1 w-24 rounded-lg bg-blue-300" @click="showBack">Belakang</button>
+      <div class="flex gap-4 mb-2">
+        <button class="border border-black p-1 w-20 rounded-lg bg-blue-300" @click="showFront">Depan</button>
+        <button class="border border-black p-1 w-20 rounded-lg bg-blue-300" @click="showBack">Belakang</button>
       </div>
-      <div class="mb-4">
+      <div class="mb-2">
         <label for="colorInput">Pilih warna:</label>
         <input type="color" id="colorInput" v-model="color" class="ml-2 border border-black" />
       </div>
-      <div class="mb-4">
+      <div class="mb-2">
         <label for="fileInput">Unggah Gambar:</label>
         <input type="file" id="fileInput" @change="handleFileUpload" class="ml-2 border border-black" accept="image/*" />
       </div>
-      <!-- <button class="border border-black p-1 w-32 mb-3 rounded-lg bg-blue-300" @click="saveImage">Simpan Gambar</button> -->
-      <div class="w-3/5 border border-black flex justify-center relative">
+      <div class="flex gap-4">
+        <button class="border border-black p-1 w-58 mb-3 rounded-lg bg-blue-300" @click="saveImageFront">Simpan Desain Depan</button>
+        <button class="border border-black p-1 w-58 mb-3 rounded-lg bg-blue-300" @click="saveImageBack">Simpan Desain Belakang</button>
+      </div>
+      <div class="flex gap-4">
+        <button class="border border-black p-1 w-30 mb-3 rounded-lg bg-blue-300" @click="refreshPage">Refresh Page</button>
+      </div>
+
+      <div ref="designCanvasContainer" class="w-3/5 border border-black flex justify-center relative">
         <div :style="{ backgroundColor: color }" class="w-full h-full absolute inset-0"></div>
-        <img v-if="isFront" class="size-full absolute" src="../assets/img/bingkai.png" alt="Bingkai Depan" />
-        <img v-else class="size-full absolute" src="../assets/img/bingkai-belakang.png" alt="Bingkai Belakang" />
+        <img v-if="isFront" id="designCanvasFront" class="size-full absolute" src="../assets/img/bingkai.png" alt="Bingkai Depan" />
+        <img v-else id="designCanvasBack" class="size-full absolute" src="../assets/img/bingkai-belakang.png" alt="Bingkai Belakang" />
 
         <!-- Kanvas Depan -->
         <v-stage v-if="isFront" ref="frontStage" :config="stageSize">
@@ -138,6 +142,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db } from "../firebase/index";
+import html2canvas from "html2canvas";
 import NavbarView from "@/components/NavbarView.vue";
 
 export default {
@@ -179,6 +184,10 @@ export default {
   },
 
   methods: {
+    refreshPage() {
+      window.location.reload();
+    },
+
     showFront() {
       this.isFront = true;
       this.updateTransformer();
@@ -262,6 +271,38 @@ export default {
           transformerNode.nodes([]);
         }
       }
+    },
+
+    saveImageFront() {
+      // Referensi ke elemen <div> yang berisi desain depan
+      const designDiv = this.$refs.designCanvasContainer;
+
+      // Gunakan html2canvas untuk menangkap elemen <div> dan menyimpan hasilnya
+      html2canvas(designDiv).then((canvas) => {
+        const image = canvas.toDataURL("image/jpeg"); // Konversi ke format JPEG
+
+        // Membuat link unduh dan mengunduh gambar
+        const link = document.createElement("a");
+        link.href = image;
+        link.download = "desain-kaos-depan.jpg";
+        link.click();
+      });
+    },
+
+    saveImageBack() {
+      // Referensi ke elemen <div> yang berisi desain belakang
+      const designDiv = this.$refs.designCanvasContainer;
+
+      // Gunakan html2canvas untuk menangkap elemen <div> dan menyimpan hasilnya
+      html2canvas(designDiv).then((canvas) => {
+        const image = canvas.toDataURL("image/jpeg"); // Konversi ke format JPEG
+
+        // Membuat link unduh dan mengunduh gambar
+        const link = document.createElement("a");
+        link.href = image;
+        link.download = "desain-kaos-belakang.jpg";
+        link.click();
+      });
     },
   },
 

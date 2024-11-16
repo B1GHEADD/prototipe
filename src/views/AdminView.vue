@@ -52,11 +52,11 @@
             </div>
             <div v-if="order.desain_depan" class="text-lg font-bold">
               <label class="block px-4 py-2">Desain Depan:</label>
-              <img :src="order.desain_depan" alt="Desain Depan" class="px-3 w-64 h-64 object-cover" />
+              <img :src="order.desain_depan" alt="Desain Depan" class="px-3 w-64 h-64 object-scale-down" />
             </div>
             <div v-if="order.desain_belakang" class="text-lg font-bold">
               <label class="block px-4 py-2">Desain Belakang:</label>
-              <img :src="order.desain_belakang" alt="Desain Belakang" class="px-3 w-64 h-64 object-cover" />
+              <img :src="order.desain_belakang" alt="Desain Belakang" class="px-3 w-64 h-64 object-scale-down" />
             </div>
           </div>
           <div>
