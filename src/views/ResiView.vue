@@ -25,8 +25,9 @@
           <td class="px-4 py-2 border border-gray-300">{{ order.status?.approved || "BELUM" }}</td>
           <td class="px-4 py-2 border border-gray-300">{{ order.status?.keterangan || "Belum di review" }}</td>
           <td class="px-4 py-2 border border-gray-300 flex justify-start space-x-2">
-            <button @click="openEditPopup(order)" :disabled="order.status?.approved === 'YA'" class="bg-blue-500 text-white p-2 rounded">Edit</button>
+            <button @click="openEditPopup(order)" :disabled="order.status?.approved === 'YA'" class="bg-yellow-500 text-white p-2 rounded">Edit</button>
             <button @click="deleteOrder(order.id)" :disabled="order.status?.approved === 'YA'" class="bg-red-500 text-white p-2 rounded ml-2">Hapus</button>
+            <button @click="getPaymentToken(order.id)" v-if="order.status?.keterangan === 'Lakukan Pembayaran'" class="bg-blue-500 text-white p-2 rounded ml-2">Bayar</button>
             <button @click="openResiPopup(order)" v-if="order.status?.approved === 'YA'" class="bg-green-500 text-white p-2 rounded ml-2">Resi</button>
           </td>
         </tr>
@@ -246,13 +247,23 @@
 import { ref, onMounted, watch, computed } from "vue";
 import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where } from "firebase/firestore";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { db } from "../firebase/index";
 import { jsPDF } from "jspdf";
+import axios from "axios";
 import html2canvas from "html2canvas";
 import NavbarView from "@/components/NavbarView.vue";
 
 export default {
   components: {
     NavbarView,
+  },
+
+  data() {
+    return {
+      productName: null,
+      price: null,
+      quantity: null,
+    };
   },
 
   methods: {
@@ -278,6 +289,78 @@ export default {
         }
       } else {
         console.error("Elemen dengan id 'hidden-content' tidak ditemukan.");
+      }
+    },
+
+    async fetchDataFromFirestoreByOrderId(order_id) {
+      try {
+        if (!order_id) {
+          throw new Error("order_id tidak disediakan");
+        }
+
+        // Pastikan order_id adalah string atau angka, bukan objek
+        order_id = String(order_id);
+
+        // Query untuk mencari dokumen berdasarkan order_id
+        const ordersRef = collection(db, "orders"); // Referensi ke koleksi orders
+        const q = query(ordersRef, where("order_id", "==", order_id));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          // Ambil data dari dokumen pertama yang cocok
+          const docSnap = querySnapshot.docs[0];
+          const data = docSnap.data();
+          this.order_id = data.order_id;
+          this.productName = data.produk_id;
+          this.price = data.price;
+          this.quantity = data.jumlah;
+          console.log("Data fetched from Firestore:", data);
+        } else {
+          console.log("No document found with the specified order_id");
+        }
+      } catch (error) {
+        console.error("Error fetching data from Firestore:", error);
+      }
+    },
+
+    async getPaymentToken(order_id) {
+      try {
+        // Ambil data dari Firestore berdasarkan order_id
+        await this.fetchDataFromFirestoreByOrderId(order_id);
+
+        // Kirim data ke backend untuk mendapatkan token
+        const response = await axios.post("http://localhost:3000/", {
+          order_id: this.order_id,
+          productName: this.productName,
+          price: this.price,
+          quantity: this.quantity,
+        });
+
+        const token = response.data.token;
+        console.log("Payment Token:", token);
+
+        if (!token) {
+          console.error("Payment token is missing or invalid.");
+          return;
+        }
+
+        // Initialize Midtrans Snap popup
+        window.snap.pay(token, {
+          onSuccess: (result) => {
+            console.log("Transaction successful:", result);
+          },
+          onPending: (result) => {
+            console.log("Transaction pending:", result);
+          },
+          onError: (error) => {
+            console.error("Transaction failed:", error);
+          },
+          onClose: () => {
+            console.log("Transaction canceled by the user");
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching token:", error);
       }
     },
   },

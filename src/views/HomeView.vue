@@ -1,29 +1,37 @@
 <template>
   <NavbarView />
-  <div class="flex flex-cols-2 border border-black justify-between w-full">
-    <div class="w-full p-2">
+  <div class="flex flex-col-2 md:flex-row border border-black justify-between w-full">
+    <div class="md:w-1/2 p-2">
       <div class="text-2xl font-bold" v-if="$store.state.user">Selamat datang {{ order_form.nama }} Sablon Yogyakarta</div>
-      <button class="bg-red-300 px-2 border border-black font-bold" @click="$store.dispatch('logout')">Logout</button>
-      <form class="grid grid-cols-2 mt-3 gap-3 border border-black p-3 justify-between rounded-lg" @submit.prevent="inputOrder">
-        <div class="flex">
-          <label class="font-bold text-md">Nama</label>
-          <input v-model="order_form.nama" disabled class="border border-black px-1 rounded-md ml-auto" type="text" placeholder="Masukan Nama" />
+      <form class="grid grid-cols-1 sm:grid-cols-2 mt-3 gap-3 border border-black p-3 rounded-lg" @submit.prevent="inputOrder">
+        <!-- Nama -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Nama</label>
+          <input v-model="order_form.nama" disabled class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="text" placeholder="Masukan Nama" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">No Tlpn</label>
-          <input v-model="order_form.no_tlpn" disabled class="border border-black px-1 rounded-md ml-auto" type="varchar" placeholder="Masukan No Tlpn" />
+
+        <!-- No Tlpn -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">No Tlpn</label>
+          <input v-model="order_form.no_tlpn" disabled class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="text" placeholder="Masukan No Tlpn" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Order Date</label>
-          <input v-model="order_form.order_date" class="border border-black px-1 rounded-md ml-auto" type="date" />
+
+        <!-- Order Date -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Order Date</label>
+          <input v-model="order_form.order_date" class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="date" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Finish Date</label>
-          <input v-model="order_form.finish_date" class="border border-black px-1 rounded-md ml-auto" type="date" />
+
+        <!-- Finish Date -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Finish Date</label>
+          <input v-model="order_form.finish_date" class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="date" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Ukuran</label>
-          <select v-model="order_form.ukuran" @change="calculateTotalPrice" class="border border-black ml-auto rounded-md">
+
+        <!-- Ukuran -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Ukuran</label>
+          <select v-model="order_form.ukuran" @change="calculateTotalPrice" class="border border-black px-2 py-1 rounded-md w-auto sm:w-2/3">
             <option disabled value="">Please select one</option>
             <option>XS</option>
             <option>S</option>
@@ -32,89 +40,105 @@
             <option>XL</option>
           </select>
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Bahan</label>
-          <select v-model="order_form.bahan" class="border border-black ml-auto rounded-md">
+
+        <!-- Bahan -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Bahan</label>
+          <select v-model="order_form.bahan" class="border border-black px-2 py-1 rounded-md w-auto sm:w-2/3">
             <option disabled value="">Please select one</option>
             <option>Cotton 24S</option>
             <option>Cotton 30S</option>
           </select>
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Tinta</label>
-          <select v-model="order_form.tinta" @change="calculateTotalPrice" class="border border-black ml-auto rounded-md">
+
+        <!-- Tinta -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Tinta</label>
+          <select v-model="order_form.tinta" @change="calculateTotalPrice" class="border border-black px-2 py-1 rounded-md w-auto sm:w-2/3">
             <option disabled value="">Please select one</option>
             <option>Water-based</option>
             <option>Superwhite</option>
             <option>Plastisol</option>
           </select>
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Finishing</label>
-          <select v-model="order_form.finishing" class="border border-black ml-auto rounded-md">
+
+        <!-- Finishing -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Finishing</label>
+          <select v-model="order_form.finishing" class="border border-black px-2 py-1 rounded-md w-auto sm:w-2/3">
             <option disabled value="">Please select one</option>
             <option>Doff</option>
             <option>Kasar</option>
             <option>Glossy</option>
           </select>
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Lengan</label>
-          <select v-model="order_form.lengan" @change="calculateTotalPrice" class="border border-black ml-auto rounded-md">
+
+        <!-- Lengan -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Lengan</label>
+          <select v-model="order_form.lengan" @change="calculateTotalPrice" class="border border-black px-2 py-1 rounded-md w-auto sm:w-2/3">
             <option disabled value="">Please select one</option>
             <option>Panjang</option>
             <option>Pendek</option>
           </select>
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Jumlah</label>
-          <input v-model="order_form.jumlah" class="border border-black px-1 rounded-md ml-auto" type="integer" placeholder="Masukan jumlah" />
+
+        <!-- Jumlah -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Jumlah</label>
+          <input v-model="order_form.jumlah" class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="number" placeholder="Masukan jumlah" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Desain Depan</label>
-          <input class="border border-black ml-auto rounded-md w-44 text-xs" type="file" @change="(event) => uploadDesain(event, 'desain_depan_url')" />
+
+        <!-- Desain Depan -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Desain Depan</label>
+          <input class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="file" @change="(event) => uploadDesain(event, 'desain_depan_url')" />
         </div>
-        <div class="flex">
-          <label class="font-bold text-md">Desain Belakang</label>
-          <input class="border border-black ml-auto rounded-md w-44 text-xs" type="file" @change="(event) => uploadDesain(event, 'desain_belakang_url')" />
+
+        <!-- Desain Belakang -->
+        <div class="flex flex-col sm:flex-row sm:items-center">
+          <label class="font-bold text-md sm:w-1/3">Desain Belakang</label>
+          <input class="border border-black px-2 py-1 rounded-md w-full sm:w-2/3" type="file" @change="(event) => uploadDesain(event, 'desain_belakang_url')" />
         </div>
-        <div class="flex flex-col gap-3">
+
+        <!-- Keterangan -->
+        <div class="flex flex-col gap-2 sm:col-span-2">
           <label class="font-bold text-lg">Keterangan</label>
-          <textarea v-model="order_form.keterangan" class="border border-black w-[45rem] h-[10rem] px-1 py-1" placeholder="Keterangan"> </textarea>
+          <textarea v-model="order_form.keterangan" class="border border-black px-3 py-2 rounded-md w-full h-44" placeholder="Keterangan"></textarea>
         </div>
-        <div></div>
-        <div class="flex flex-col mt-1">
-          <button type="submit" class="bg-green-300 border border-black rounded-md p-1 text-lg">Rp.{{ order_form.price }}</button>
+
+        <!-- Submit -->
+        <div class="flex justify-start sm:col-span-2">
+          <button type="submit" class="bg-green-300 border border-black rounded-md px-8 py-3 text-lg w-full sm:w-1/2">Rp.{{ order_form.price }}</button>
         </div>
       </form>
     </div>
-    <div class="w-full flex flex-col items-center mt-4">
-      <div class="flex gap-4 mb-2">
+    <div class="flex-col items-center justify-center mt-4 w-1/2 hidden md:block">
+      <div class="flex gap-4 mb-2 justify-center">
         <button class="border border-black p-1 w-20 rounded-lg bg-blue-300" @click="showFront">Depan</button>
         <button class="border border-black p-1 w-20 rounded-lg bg-blue-300" @click="showBack">Belakang</button>
       </div>
-      <div class="mb-2">
+      <div class="mb-2 flex justify-center">
         <label for="colorInput">Pilih warna:</label>
         <input type="color" id="colorInput" v-model="color" class="ml-2 border border-black" />
       </div>
-      <div class="mb-2">
+      <div class="mb-2 flex justify-center">
         <label for="fileInput">Unggah Gambar:</label>
         <input type="file" id="fileInput" @change="handleFileUpload" class="ml-2 border border-black" accept="image/*" />
       </div>
-      <div class="flex gap-4">
-        <button class="border border-black p-1 w-58 mb-3 rounded-lg bg-blue-300" @click="saveImageFront">Simpan Desain Depan</button>
-        <button class="border border-black p-1 w-58 mb-3 rounded-lg bg-blue-300" @click="saveImageBack">Simpan Desain Belakang</button>
+      <div class="flex gap-4 justify-center mb-3">
+        <button class="border border-black p-1 w-58 rounded-lg bg-blue-300" @click="saveImageFront">Simpan Desain Depan</button>
+        <button class="border border-black p-1 w-58 rounded-lg bg-blue-300" @click="saveImageBack">Simpan Desain Belakang</button>
       </div>
-      <div class="flex gap-4">
-        <button class="border border-black p-1 w-30 mb-3 rounded-lg bg-blue-300" @click="refreshPage">Refresh Page</button>
+      <div class="flex gap-4 justify-center">
+        <button class="border border-black p-1 w-30 rounded-lg bg-blue-300" @click="refreshPage">Refresh Page</button>
       </div>
 
-      <div ref="designCanvasContainer" class="w-3/5 border border-black flex justify-center relative">
+      <div ref="designCanvasContainer" class="w-3/5 border border-black flex justify-center items-center relative mt-4 mx-auto">
         <div :style="{ backgroundColor: color }" class="w-full h-full absolute inset-0"></div>
         <img v-if="isFront" id="designCanvasFront" class="size-full absolute" src="../assets/img/bingkai.png" alt="Bingkai Depan" />
         <img v-else id="designCanvasBack" class="size-full absolute" src="../assets/img/bingkai-belakang.png" alt="Bingkai Belakang" />
 
-        <!-- Kanvas Depan -->
         <v-stage v-if="isFront" ref="frontStage" :config="stageSize">
           <v-layer ref="frontLayer">
             <v-image v-for="(imgCfg, index) in imageConfigFront" :key="imgCfg.id" :id="imgCfg.id" :config="imgCfg" :image="imgCfg.image" @transformend="handleTransformEnd('front', index)" @mousedown="selectImage('front', index)" />
@@ -122,7 +146,6 @@
           </v-layer>
         </v-stage>
 
-        <!-- Kanvas Belakang -->
         <v-stage v-if="!isFront" ref="backStage" :config="stageSize">
           <v-layer ref="backLayer">
             <v-image v-for="(imgCfg, index) in imageConfigBack" :key="imgCfg.id" :id="imgCfg.id" :config="imgCfg" :image="imgCfg.image" @transformend="handleTransformEnd('back', index)" @mousedown="selectImage('back', index)" />
@@ -309,6 +332,8 @@ export default {
   setup() {
     const order_form = ref({});
     const db = getFirestore(); // Inisialisasi Firestore
+    const router = useRouter();
+    const store = useStore();
 
     const fetchUserData = async (uid) => {
       const userDoc = doc(db, "users", uid); // Dapatkan referensi dokumen berdasarkan UID
@@ -498,9 +523,6 @@ export default {
         console.log("No user is signed in");
       }
     });
-
-    const router = useRouter();
-    const store = useStore();
 
     const isFormComplete = () => {
       return (

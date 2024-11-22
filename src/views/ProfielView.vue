@@ -2,20 +2,22 @@
   <div>
     <NavbarView />
     <div class="container mx-auto p-5">
-      <h1 class="text-3xl font-bold mb-4">Profil Pengguna</h1>
+      <h1 class="text-3xl font-bold mb-4 text-center md:text-left">Profil Pengguna</h1>
       <div class="bg-white p-5 rounded shadow-md" v-if="currentUser">
-        <h2 class="text-xl font-semibold">Informasi Pribadi</h2>
-        <p><strong>Nama:</strong> {{ currentUser.nama }}</p>
-        <p><strong>Email:</strong> {{ currentUser.email }}</p>
-        <p><strong>Alamat:</strong> {{ currentUser.alamat }}</p>
-        <p><strong>Nomor Telepon:</strong> {{ currentUser.no_tlpn }}</p>
-        <button @click="openEditPopup" class="bg-blue-500 text-white px-4 py-2 mt-4">Edit Profil</button>
+        <h2 class="text-xl font-semibold mb-4">Informasi Pribadi</h2>
+        <div class="space-y-2">
+          <p><strong>Nama:</strong> {{ currentUser.nama }}</p>
+          <p><strong>Email:</strong> {{ currentUser.email }}</p>
+          <p><strong>Alamat:</strong> {{ currentUser.alamat }}</p>
+          <p><strong>Nomor Telepon:</strong> {{ currentUser.no_tlpn }}</p>
+        </div>
+        <button @click="openEditPopup" class="bg-blue-500 text-white px-4 py-2 mt-4 w-full md:w-auto">Edit Profil</button>
       </div>
     </div>
 
     <!-- Pop-up Form Edit -->
-    <div v-if="showEditPopup" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-      <div class="bg-white p-8 rounded shadow-md w-1/3">
+    <div v-if="showEditPopup" class="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4">
+      <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
         <h2 class="text-xl font-bold mb-4">Edit Profil</h2>
         <div class="mb-4">
           <label class="block">Nama:</label>
@@ -29,8 +31,8 @@
           <label class="block">Nomor Telepon:</label>
           <input v-model="editedUser.no_tlpn" class="w-full border px-2 py-1" />
         </div>
-        <div class="flex justify-end">
-          <button @click="saveEdit" class="bg-green-500 text-white px-4 py-2 mr-2">Simpan</button>
+        <div class="flex flex-col md:flex-row justify-end gap-2">
+          <button @click="saveEdit" class="bg-green-500 text-white px-4 py-2">Simpan</button>
           <button @click="closeEditPopup" class="bg-red-500 text-white px-4 py-2">Batal</button>
         </div>
       </div>

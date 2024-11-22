@@ -3,16 +3,38 @@
   <div class="text-2xl font-bold px-3" v-if="$store.state.user">Hei admin</div>
   <div>
     <h1 class="text-3xl font-bold mb-5 px-3">Daftar Pesanan</h1>
-    <div class="w-full h-full p-3" v-for="(order, index) in orders" :key="order.id">
-      <button @click="toggleDropdown(index)" class="border border-black font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center" type="button">
-        Pesanan ID: {{ order.id }}
-        <svg class="w-2.5 h-2.5 ms-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4" />
-        </svg>
-      </button>
-      <!-- Dropdown menu -->
-      <div v-if="isDropdownOpen(index)" class="z-10 bg-white divide-y divide-gray-100 rounded-lg shadow w-full dark:bg-gray-700">
-        <div class="flex flex-cols-2 py-2 text-sm">
+    <!-- Tabel Produk dan Pesanan -->
+    <div class="w-full h-full p-3">
+      <table class="min-w-full bg-white border border-gray-300">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="py-2 px-4 border">Produk ID</th>
+            <th class="py-2 px-4 border">Order ID</th>
+            <th class="py-2 px-4 border">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(order, index) in orders" :key="order.id">
+            <!-- Kolom Produk ID -->
+            <td class="py-2 px-4 border text-center">{{ order.produk_id || "Tidak Diketahui" }}</td>
+
+            <!-- Kolom Order ID -->
+            <td class="py-2 px-4 border text-center">
+              <button @click="togglePopup(index)" class="bg-blue-500 text-white font-medium rounded px-4 py-2">Pesanan ID: {{ order.id }}</button>
+            </td>
+
+            <!-- Kolom Status -->
+            <td class="py-2 px-4 border text-center">
+              <!-- Menampilkan status berdasarkan persentase progress -->
+              <span>{{ orderStatuses[index] }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Popup menu -->
+      <div v-for="(order, index) in orders" :key="'popup-' + order.id" class="z-10 bg-white divide-y divide-gray-100 rounded-lg shadow w-full dark:bg-gray-700">
+        <div v-if="isPopupOpen(index)" class="fixed inset-0 flex items-center justify-center bg-white">
           <div class="grid grid-cols-2 py-2 w-3/4 text-sm text-gray-700">
             <div class="text-lg font-bold">
               <label class="block px-4 py-2">Nama : {{ order.nama }}</label>
@@ -114,7 +136,10 @@
                   <label class="text-xl font-bold">Kemas</label>
                   <input type="checkbox" v-model="progres[index].kemas" @change="updateProgres(order.id, index)" />
                 </div>
-                <button @click="saveAccData(order.id, index)" class="mt-4 bg-blue-500 text-white font-bold py-2 px-4 rounded">Simpan</button>
+                <div class="flex items-center justify-between mt-4">
+                  <button @click="saveAccData(order.id, index)" class="bg-blue-500 text-white font-bold py-2 px-4 rounded">Simpan</button>
+                  <button @click="closePopup(index)" class="bg-red-500 text-white font-bold py-2 px-4 rounded">Tutup</button>
+                </div>
               </form>
             </div>
           </div>
@@ -122,11 +147,10 @@
       </div>
     </div>
   </div>
-  <button class="bg-red-300 px-2 border border-black font-bold" @click="$store.dispatch('logout')">Logout</button>
 </template>
 
 <script>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { getDocs, getDoc, collection, doc, setDoc } from "firebase/firestore";
 import { db } from "../firebase/index";
 import { useStore } from "vuex";
@@ -141,7 +165,7 @@ export default {
     const orders = ref([]);
     const status = ref([]);
     const progres = ref([]);
-    const dropdowns = ref([]);
+    const popups = ref([]);
     const circumference = 2 * Math.PI * 50;
 
     const fetchOrders = async () => {
@@ -153,7 +177,7 @@ export default {
         orders.value = [];
         status.value = [];
         progres.value = [];
-        dropdowns.value = [];
+        popups.value = [];
 
         for (const docSnapshot of querySnapshot.docs) {
           const orderData = { id: docSnapshot.id, ...docSnapshot.data() };
@@ -180,7 +204,6 @@ export default {
               orderData.keterangan = productData.keterangan || "Tidak Diketahui"; // Ambil keterangan
               orderData.desain_depan = productData.desain_depan || "Tidak Diketahui"; // Ambil desain depan
               orderData.desain_belakang = productData.desain_belakang || "Tidak Diketahui"; // Ambil desain belakang
-              console.log(orderData.tinta);
               // Ambil data tinta berdasarkan ID_categori_tinta
               const tintaDocRef = doc(db, "tinta", productData.ID_categori_tinta);
               const tintaDoc = await getDoc(tintaDocRef);
@@ -231,7 +254,7 @@ export default {
             kemas: orderData.progres?.kemas || false,
           });
 
-          dropdowns.value.push(false);
+          popups.value.push(false);
         }
         orders.value = fetchedOrders;
       } catch (error) {
@@ -239,14 +262,17 @@ export default {
       }
     };
 
-    const toggleDropdown = (index) => {
-      dropdowns.value[index] = !dropdowns.value[index];
+    const togglePopup = (index) => {
+      popups.value[index] = !popups.value[index];
     };
 
-    const isDropdownOpen = (index) => {
-      return dropdowns.value[index];
+    const isPopupOpen = (index) => {
+      return popups.value[index];
     };
 
+    const closePopup = (index) => {
+      popups.value[index] = false;
+    };
     const calculateStrokeOffset = (index) => {
       const totalSteps = Object.keys(progres.value[index]).length;
       const completedSteps = Object.values(progres.value[index]).filter(Boolean).length;
@@ -265,6 +291,15 @@ export default {
 
       return ((completedSteps / totalSteps) * 100).toFixed(0);
     };
+
+    const orderStatuses = computed(() =>
+      progres.value.map((progress) => {
+        const totalSteps = Object.keys(progress).length;
+        const completedSteps = Object.values(progress).filter(Boolean).length;
+        const percentage = (completedSteps / totalSteps) * 100;
+        return percentage === 100 ? "Complete" : "Incomplete";
+      })
+    );
 
     const saveAccData = async (orderId, index) => {
       try {
@@ -299,12 +334,14 @@ export default {
       orders,
       status,
       progres,
-      dropdowns,
+      popups,
       circumference,
-      toggleDropdown,
-      isDropdownOpen,
+      togglePopup,
+      isPopupOpen,
+      closePopup,
       calculateStrokeOffset,
       calculateProgressPercentage,
+      orderStatuses,
       saveAccData,
       updateProgres,
     };
