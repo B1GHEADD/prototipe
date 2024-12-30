@@ -450,6 +450,7 @@ export default {
         console.error("Error fetching tinta data: ", error);
       }
     },
+
     async deleteTinta(id) {
       try {
         await deleteDoc(doc(db, "tinta", id));
@@ -458,10 +459,12 @@ export default {
         console.error("Error deleting tinta: ", error);
       }
     },
+
     editTinta(tinta) {
       this.tintaEditing = true;
       this.selectedTinta = { ...tinta }; // duplikat data agar tidak langsung memodifikasi array
     },
+
     async updateTinta() {
       try {
         const tintaRef = doc(db, "tinta", this.selectedTinta.id);
@@ -521,6 +524,7 @@ export default {
         console.error("Error fetching bahan data: ", error);
       }
     },
+
     async deleteBahan(id) {
       try {
         await deleteDoc(doc(db, "bahan", id));
@@ -529,10 +533,12 @@ export default {
         console.error("Error deleting bahan: ", error);
       }
     },
+
     editBahan(bahan) {
       this.bahanEditing = true;
       this.selectedBahan = { ...bahan };
     },
+
     async updateBahan() {
       try {
         const bahanRef = doc(db, "bahan", this.selectedBahan.id);
@@ -592,6 +598,7 @@ export default {
         console.error("Error fetching finishing data: ", error);
       }
     },
+
     async deleteFinishing(id) {
       try {
         await deleteDoc(doc(db, "finishing", id));
@@ -600,10 +607,12 @@ export default {
         console.error("Error deleting finishing: ", error);
       }
     },
+
     editFinishing(finishing) {
       this.finishingEditing = true;
       this.selectedFinishing = { ...finishing };
     },
+
     async updateFinishing() {
       try {
         const finishingRef = doc(db, "finishing", this.selectedFinishing.id);

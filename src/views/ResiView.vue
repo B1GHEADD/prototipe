@@ -2,62 +2,55 @@
   <NavbarView />
   <div class="border border-black w-full h-full p-4">
     <h1 class="text-2xl font-bold mb-4">Riwayat Pemesanan Anda</h1>
-    <table class="min-w-full table-auto border-collapse border border-gray-300">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 border border-gray-300">Nama</th>
-          <th class="px-4 py-2 border border-gray-300">Tanggal Pemesanan</th>
-          <th class="px-4 py-2 border border-gray-300">Tanggal Selesai</th>
-          <th class="px-4 py-2 border border-gray-300">Jumlah</th>
-          <th class="px-4 py-2 border border-gray-300">Harga Total</th>
-          <th class="px-4 py-2 border border-gray-300">Status ACC</th>
-          <th class="px-4 py-2 border border-gray-300">Keterangan ACC</th>
-          <th class="px-4 py-2 border border-gray-300">Aksi</th>
-        </tr>
-      </thead>
-      <tbody class="text-center">
-        <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50">
-          <td class="px-4 py-2 border border-gray-300">{{ order.nama }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.order_date }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.finish_date }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.jumlah }}</td>
-          <td class="px-4 py-2 border border-gray-300">Rp. {{ order.price }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.status?.approved || "BELUM" }}</td>
-          <td class="px-4 py-2 border border-gray-300">{{ order.status?.keterangan || "Belum di review" }}</td>
-          <td class="px-4 py-2 border border-gray-300 flex justify-start space-x-2">
-            <button @click="openEditPopup(order)" :disabled="order.status?.approved === 'YA'" class="bg-yellow-500 text-white p-2 rounded">Edit</button>
-            <button @click="deleteOrder(order.id)" :disabled="order.status?.approved === 'YA'" class="bg-red-500 text-white p-2 rounded ml-2">Hapus</button>
-            <button @click="getPaymentToken(order.id)" v-if="order.status?.keterangan === 'Lakukan Pembayaran'" class="bg-blue-500 text-white p-2 rounded ml-2">Bayar</button>
-            <button @click="openResiPopup(order)" v-if="order.status?.approved === 'YA'" class="bg-green-500 text-white p-2 rounded ml-2">Resi</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div v-for="order in orders" :key="order.id" class="border border-gray-300 rounded-lg p-4 bg-white shadow hover:shadow-lg">
+        <h2 class="font-bold text-lg mb-2">{{ order.nama }}</h2>
+        <p><strong>Tanggal Pemesanan:</strong> {{ order.order_date }}</p>
+        <p><strong>Tanggal Selesai:</strong> {{ order.finish_date }}</p>
+        <p><strong>Jumlah:</strong> {{ order.jumlah }}</p>
+        <p><strong>Harga Total:</strong> Rp. {{ order.price }}</p>
+        <p><strong>Status ACC:</strong> {{ order.status?.approved || "BELUM" }}</p>
+        <p><strong>Keterangan ACC:</strong> {{ order.status?.keterangan || "Belum di review" }}</p>
+        <div class="flex justify-start space-x-2 mt-4">
+          <button @click="openEditPopup(order)" :disabled="order.status?.approved === 'YA'" class="bg-yellow-300 text-white px-3 py-1 rounded disabled:opacity-50">Edit</button>
+          <button @click="deleteOrder(order.id)" :disabled="order.status?.approved === 'YA'" class="bg-red-300 text-white px-3 py-1 rounded disabled:opacity-50">Hapus</button>
+          <button @click="getPaymentToken(order.id)" v-if="order.status?.approved === 'YA'" class="bg-blue-300 text-white px-3 py-1 rounded">Bayar</button>
+          <button @click="openResiPopup(order)" v-if="order.status?.keterangan === 'Lunas'" class="bg-green-300 text-white px-3 py-1 rounded">Resi</button>
+          <button @click="fetchDataFromFirestoreByOrderIdforMidtrans(order.id)" class="bg-orange-300 text-white px-3 py-1 rounded">Cek</button>
+        </div>
+      </div>
+    </div>
 
     <!-- PopUp Form Edit -->
     <div v-if="showSelectedOrder" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-      <div class="bg-white p-4 rounded shadow-lg">
-        <h1 class="text-2xl font-bold mb-2">Edit Pesanan</h1>
-        <form class="grid grid-cols-3 gap-2" @submit.prevent="editOrder">
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Nama:</label>
-            <input v-model="selectedOrder.nama" type="text" disabled class="w-full p-2 border border-gray-300 rounded" />
+      <div class="bg-white p-4 rounded shadow-lg w-full max-w-4xl" style="max-height: 90vh; overflow-y: auto">
+        <h1 class="text-xl font-semibold mb-4">Edit Pesanan</h1>
+        <!-- Grid Responsif -->
+        <form class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3" @submit.prevent="editOrder">
+          <!-- Nama -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Nama:</label>
+            <input v-model="selectedOrder.nama" type="text" disabled class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">No Telepon:</label>
-            <input v-model="selectedOrder.no_tlpn" type="text" disabled class="w-full p-2 border border-gray-300 rounded" />
+          <!-- Nomor Telepon -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">No Telepon:</label>
+            <input v-model="selectedOrder.no_tlpn" type="text" disabled class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Tanggal Pemesanan:</label>
-            <input v-model="selectedOrder.order_date" type="date" class="w-full p-2 border border-gray-300 rounded" />
+          <!-- Tanggal Pemesanan -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Tanggal Pemesanan:</label>
+            <input v-model="selectedOrder.order_date" type="date" class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Tanggal Selesai:</label>
-            <input v-model="selectedOrder.finish_date" type="date" class="w-full p-2 border border-gray-300 rounded" />
+          <!-- Tanggal Selesai -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Tanggal Selesai:</label>
+            <input v-model="selectedOrder.finish_date" type="date" class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Size:</label>
-            <select v-model="selectedOrder.ukuran_type" class="border border-black ml-auto rounded-md">
+          <!-- Size -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Size:</label>
+            <select v-model="selectedOrder.ukuran_type" class="border border-black rounded-md w-full p-1 text-sm">
               <option disabled value="">Please select one</option>
               <option>XS</option>
               <option>S</option>
@@ -66,67 +59,73 @@
               <option>XL</option>
             </select>
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Tinta:</label>
-            <select v-model="selectedOrder.tinta_type" class="border border-black ml-auto rounded-md">
+          <!-- Tinta -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Tinta:</label>
+            <select v-model="selectedOrder.tinta_type" class="border border-black rounded-md w-full p-1 text-sm">
               <option disabled value="">Please select one</option>
               <option>Water-based</option>
               <option>Superwhite</option>
               <option>Plastisol</option>
             </select>
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Finishing:</label>
-            <select v-model="selectedOrder.finishing_type" class="border border-black ml-auto rounded-md">
+          <!-- Finishing -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Finishing:</label>
+            <select v-model="selectedOrder.finishing_type" class="border border-black rounded-md w-full p-1 text-sm">
               <option disabled value="">Please select one</option>
               <option>Doff</option>
               <option>Kasar</option>
               <option>Glossy</option>
             </select>
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Lengan:</label>
-            <select v-model="selectedOrder.lengan_type" class="border border-black ml-auto rounded-md">
+          <!-- Lengan -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Lengan:</label>
+            <select v-model="selectedOrder.lengan_type" class="border border-black rounded-md w-full p-1 text-sm">
               <option disabled value="">Please select one</option>
               <option>Panjang</option>
               <option>Pendek</option>
             </select>
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Bahan:</label>
-            <select v-model="selectedOrder.bahan_type" class="border border-black ml-auto rounded-md">
+          <!-- Bahan -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Bahan:</label>
+            <select v-model="selectedOrder.bahan_type" class="border border-black rounded-md w-full p-1 text-sm">
               <option disabled value="">Please select one</option>
               <option>Cotton 24S</option>
               <option>Cotton 30S</option>
             </select>
           </div>
+          <!-- Desain Depan -->
           <div v-if="selectedOrder.desainDepan">
-            <label class="block text-md font-bold">Desain Depan:</label>
-            <div class="flex items-start">
-              <img :src="selectedOrder.desainDepan" alt="Desain Depan" class="w-64 h-64 object-scale-down" />
-            </div>
+            <label class="block text-sm font-semibold mb-1">Desain Depan:</label>
+            <img :src="selectedOrder.desainDepan" alt="Desain Depan" class="w-full h-auto max-w-xs mx-auto" />
           </div>
+          <!-- Desain Belakang -->
           <div v-if="selectedOrder.desainBelakang">
-            <label class="block text-md font-bold">Desain Belakang:</label>
-            <div class="flex items-start">
-              <img :src="selectedOrder.desainBelakang" alt="Desain Belakang" class="w-64 h-64 object-scale-down" />
-            </div>
+            <label class="block text-sm font-semibold mb-1">Desain Belakang:</label>
+            <img :src="selectedOrder.desainBelakang" alt="Desain Belakang" class="w-full h-auto max-w-xs mx-auto" />
           </div>
-          <div class="mb-2">
-            <label class="block text-md font-bold mb-2">Keterangan:</label>
-            <textarea v-model="selectedOrder.keterangan" type="text" class="w-full p-2 border border-gray-300 rounded h-60" />
+          <!-- Keterangan -->
+          <div class="lg:col-span-1">
+            <label class="block text-sm font-semibold mb-1">Keterangan:</label>
+            <textarea v-model="selectedOrder.keterangan" class="w-full p-1 border border-gray-300 rounded text-sm h-36"></textarea>
           </div>
-          <div class="-mt-3">
-            <label class="block text-md font-bold mb-2">Jumlah:</label>
-            <input v-model="selectedOrder.jumlah" type="number" class="w-full p-2 border border-gray-300 rounded" />
+          <!-- Jumlah -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Jumlah:</label>
+            <input v-model="selectedOrder.jumlah" type="number" class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="-mt-3">
-            <label class="block text-md font-bold mb-2">Harga Total:</label>
-            <input disabled v-model="selectedOrder.price" type="number" class="w-full p-2 border border-gray-300 rounded" />
+          <!-- Harga Total -->
+          <div>
+            <label class="block text-sm font-semibold mb-1">Harga Total:</label>
+            <input disabled v-model="selectedOrder.price" type="number" class="w-full p-1 border border-gray-300 rounded text-sm" />
           </div>
-          <div class="mt-5 w-full items-center flex">
-            <button type="submit" class="bg-blue-500 text-white p-2 rounded w-1/2">Simpan</button>
-            <button @click="closeEditPopup" type="button" class="bg-gray-500 text-white p-2 rounded ml-2 w-1/2">Batal</button>
+          <!-- Tombol -->
+          <div class="mt-4 w-full flex sm:col-span-2 lg:col-span-3">
+            <button type="submit" class="bg-blue-500 text-white py-1 px-4 rounded text-sm w-1/2">Simpan</button>
+            <button @click="closeEditPopup" type="button" class="bg-gray-500 text-white py-1 px-4 rounded text-sm ml-2 w-1/2">Batal</button>
           </div>
         </form>
       </div>
@@ -601,6 +600,60 @@ export default {
       }
     };
 
+    const fetchDataFromFirestoreByOrderIdforMidtrans = async (orderId) => {
+      try {
+        // Mengambil data order dari Firestore berdasarkan orderId
+        const orderDoc = await getDoc(doc(db, "orders", orderId));
+
+        if (!orderDoc.exists) {
+          alert("Order tidak ditemukan.");
+          return;
+        }
+
+        const order = orderDoc.data();
+
+        // Memeriksa apakah order masih dalam status "Lakukan pembayaran"
+        if (order.status.keterangan === "Lunas") {
+          alert("Order sudah lunas.");
+          return;
+        }
+
+        // Menandai status loading
+        order.loading = true; // Gunakan reactivity Vue jika perlu
+
+        // Memanggil API Midtrans untuk mengecek status pembayaran
+        const response = await fetch("http://localhost:3000/cek-status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderId }),
+        });
+
+        // Mengecek apakah request berhasil
+        if (response.ok) {
+          const data = await response.json();
+
+          // Cek status transaksi yang diterima dari Midtrans
+          if (data.transaction_status === "settlement") {
+            // Jika status adalah "settlement", update status di Firestore
+            await orderRef.update({
+              "status.keterangan": "Lunas", // Mengubah status.keterangan menjadi 'Lunas'
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            alert("Pembayaran telah selesai dan status diperbarui menjadi Lunas.");
+          } else {
+            alert(`Status transaksi saat ini: ${data.transaction_status}`);
+          }
+        } else {
+          alert("Gagal memeriksa status pembayaran.");
+        }
+      } catch {
+        window.location.reload(); // Refresh halaman untuk menampilkan perubahan terbaru
+      }
+    };
+
     onMounted(() => {
       onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -690,6 +743,7 @@ export default {
       closeResiPopup,
       editOrder,
       deleteOrder,
+      fetchDataFromFirestoreByOrderIdforMidtrans,
       calculateProgressPercentage,
       progressPercentage,
     };
